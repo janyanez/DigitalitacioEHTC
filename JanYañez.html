@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoXef - Receptes Zero Waste</title>
+    
+    <!-- Tailwind CSS per als estils -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM via CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel per a JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Estils CSS interns */
+        body {
+            background-color: #f3f4f6; /* Gris clar per defecte */
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Amagar scrollbars però mantenir funcionalitat */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Animacions d'entrada */
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        /* Efecte de polsat en botons */
+        .btn-press:active { transform: scale(0.96); }
+        
+        /* Contenidor principal estil mòbil */
+        .app-container {
+            width: 100%;
+            height: 100dvh;
+            background-color: #f9fafb;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+            .app-container {
+                height: 800px;
+                max-width: 400px;
+                border-radius: 3rem;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                border: 8px solid #1f2937;
+            }
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- COMPONENTS D'ICONES SVG RE-DISSENYATS ---
+        const Icon = ({ d, size = 24, className = "", viewBox = "0 0 24 24", fill = "none" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox={viewBox} fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{__html: d}}></svg>
+        );
+
+        const ChefHat = (props) => (
+            <Icon {...props} d='
+                <path d="M6 14c0-3.5 0-5 2-7s2.5-3 4-3s2 1 4 3s2 3.5 2 7" />
+                <path d="M6 14c-2 0-3-1-3-3s1.5-3.5 4-3.5" />
+                <path d="M18 14c2 0 3-1 3-3s-1.5-3.5-4-3.5" />
+                <rect x="6" y="14" width="12" height="6" rx="1" />
+                <path d="M6 17h12" />
+            ' />
+        );
+
+        const Snowflake = (props) => (
+            <Icon {...props} d='
+                <line x1="12" y1="2" x2="12" y2="22" />
+                <line x1="20" y1="12" x2="4" y2="12" />
+                <path d="m20 16-4-4 4-4" />
+                <path d="m4 8 4 4-4 4" />
+                <path d="m16 4-4 4-4-4" />
+                <path d="m8 20 4-4 4 4" />
+            ' />
+        );
+
+        const Camera = (props) => <Icon {...props} d='<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>' />;
+        const ImageIcon = (props) => <Icon {...props} d='<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>' />;
+        const Settings2 = (props) => <Icon {...props} d='<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="8" cy="7" r="3"/>' />;
+        const Flame = (props) => <Icon {...props} d='<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>' />;
+        const Zap = (props) => <Icon {...props} d='<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' />;
+        const Loader2 = (props) => <Icon {...props} d='<path d="M21 12a9 9 0 1 1-6.219-8.56"/>' />;
+        const ArrowLeft = (props) => <Icon {...props} d='<line x1="19" x2="5" y1="12" y2="12"/><polyline points="12 19 5 12 12 5"/>' />;
+        const Clock = (props) => <Icon {...props} d='<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' />;
+        const MessageCircle = (props) => <Icon {...props} d='<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.5 8.5 0 0 1 8.5 7.9Z"/><path d="m16 11-4 4-2-2"/>' />;
+        const Layers = (props) => <Icon {...props} d='<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>' />;
+        const Send = (props) => <Icon {...props} d='<line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>' />;
+
+        function EcoXefApp() {
+            const [view, setView] = useState('home');
+            const [temperaturePref, setTemperaturePref] = useState('qualsevol');
+            const [timePref, setTimePref] = useState('mix');
+            const [analysisResult, setAnalysisResult] = useState(null);
+            const [selectedRecipe, setSelectedRecipe] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [showChat, setShowChat] = useState(false);
+            const [chatMessages, setChatMessages] = useState([
+                { role: 'bot', text: 'Hola! Puc ajudar-te a modificar la recepta o donar-te consells de conservació.' }
+            ]);
+            const [chatInput, setChatInput] = useState("");
+            
+            const fileInputRef = useRef(null);
+
+            // Simulem la càrrega d'imatge i detecció
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setIsLoading(true);
+                    setView('analyzing');
+                    
+                    setTimeout(() => {
+                        setAnalysisResult({
+                            ingredients_detectats: ["Pebrots", "Ous", "Ceba", "Formatge"],
+                            receptes: [
+                                { titol: "Truita de Pebrots Zero Waste", categoria: "Express", temps: "10 min", descripcio_breu: "Utilitza les sobres de pebrot per una truita esponjosa.", ingredients_necessaris: ["2 Ous", "Mig pebrot", "Un tall de ceba"], passos: ["Bat els ous", "Salteja la ceba i el pebrot", "Cuina la truita a foc lent"] },
+                                { titol: "Pebrots Farcits Gourmet", categoria: "Gourmet", temps: "25 min", descripcio_breu: "Farcit amb formatge fos i verdures.", ingredients_necessaris: ["Pebrots sencers", "Formatge", "Ceba"], passos: ["Talla el cap del pebrot", "Farcix amb formatge i ceba picada", "Enforna 20 minuts a 180 graus"] },
+                                { titol: "Batch Cooking: Saltejat Base", categoria: "Batch", temps: "30 min", descripcio_breu: "Base de verdures per a tota la setmana.", ingredients_necessaris: ["Tots els pebrots", "Totes les cebes", "Oli"], passos: ["Talla-ho tot a daus", "Salteja en gran quantitat", "Guarda en tàpers al buit"] }
+                            ]
+                        });
+                        setView('recipes');
+                        setIsLoading(false);
+                    }, 1500);
+                }
+            };
+
+            const sendMessage = () => {
+                if (!chatInput.trim()) return;
+                const newMsg = { role: 'user', text: chatInput };
+                setChatMessages([...chatMessages, newMsg]);
+                setChatInput("");
+                
+                // Resposta simulada
+                setTimeout(() => {
+                    setChatMessages(prev => [...prev, { role: 'bot', text: "Entès! Faré els ajustos per a tu." }]);
+                }, 1000);
+            };
+
+            const renderHomeView = () => (
+                <div className="flex flex-col items-center justify-center min-h-full p-6 text-center animate-in">
+                    <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm border-4 border-white">
+                        <ChefHat size={48} />
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">EcoXef</h1>
+                    <p className="text-gray-500 mb-8 max-w-xs">Cuina intel·ligent per reduir el malbaratament.</p>
+                    
+                    <div className="w-full bg-white border border-gray-200 shadow-sm p-5 rounded-3xl mb-8 text-left">
+                        <h3 className="font-bold text-gray-400 mb-4 text-[10px] uppercase tracking-widest flex items-center gap-2">
+                            <Settings2 size={12} /> Com vols cuinar avui?
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex gap-2">
+                                {['qualsevol', 'fred', 'calent'].map(t => (
+                                    <button key={t} onClick={() => setTemperaturePref(t)} className={`flex-1 py-2.5 text-[11px] rounded-xl border font-bold transition-all flex items-center justify-center gap-1.5 ${temperaturePref === t ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+                                        {t === 'fred' && <Snowflake size={14} />}
+                                        {t === 'calent' && <Flame size={14} />}
+                                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                {['mix', 'express', 'gourmet', 'batch'].map(s => (
+                                    <button key={s} onClick={() => setTimePref(s)} className={`flex-1 py-2.5 text-[11px] rounded-xl border font-bold transition-all flex items-center justify-center gap-1.5 ${timePref === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+                                        {s === 'express' && <Zap size={12} />}
+                                        {s === 'batch' && <Layers size={12} />}
+                                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full space-y-4">
+                        <button onClick={() => fileInputRef.current.click()} className="btn-press w-full bg-green-600 hover:bg-green-700 text-white font-bold py-5 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-transform">
+                            <Camera size={24} /> Fes una foto
+                        </button>
+                        <button onClick={() => fileInputRef.current.click()} className="btn-press w-full bg-white border border-gray-200 text-gray-700 font-bold py-5 px-6 rounded-2xl flex items-center justify-center gap-3 active:bg-gray-50">
+                            <ImageIcon size={22} className="text-green-600" /> Puja de la galeria
+                        </button>
+                        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
+                    </div>
+                </div>
+            );
+
+            const renderRecipesView = () => (
+                <div className="flex flex-col h-full animate-in">
+                    <div className="p-6 bg-white border-b border-gray-100">
+                        <button onClick={() => setView('home')} className="mb-4 text-green-600 flex items-center text-sm font-bold"><ArrowLeft size={16} className="mr-1"/> Enrere</button>
+                        <h2 className="text-2xl font-bold text-gray-800">Idees trobades</h2>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {analysisResult?.ingredients_detectats.map((ing, i) => (
+                                <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg border border-gray-200">#{ing}</span>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                        {analysisResult?.receptes.map((r, i) => (
+                            <div key={i} onClick={() => { setSelectedRecipe(r); setView('cooking'); }} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 btn-press cursor-pointer">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${r.categoria === 'Batch' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
+                                        {r.categoria}
+                                    </span>
+                                    <div className="flex items-center text-gray-400 text-[10px] font-bold"><Clock size={12} className="mr-1"/>{r.temps}</div>
+                                </div>
+                                <h3 className="font-bold text-gray-900 text-lg">{r.titol}</h3>
+                                <p className="text-xs text-gray-500 mt-1">{r.descripcio_breu}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="app-container">
+                    {view === 'home' && renderHomeView()}
+                    
+                    {view === 'analyzing' && (
+                        <div className="flex flex-col items-center justify-center h-full p-6 text-center animate-in">
+                            <div className="p-6 bg-white rounded-full shadow-inner mb-6">
+                                <Loader2 size={48} className="text-green-600 animate-spin" />
+                            </div>
+                            <p className="text-gray-500 font-bold tracking-wide">Analitzant la teva nevera...</p>
+                        </div>
+                    )}
+                    
+                    {view === 'recipes' && renderRecipesView()}
+                    
+                    {view === 'cooking' && (
+                        <div className="flex flex-col h-full bg-white animate-in relative">
+                            <div className="p-6 shrink-0 border-b border-gray-50">
+                                <button onClick={() => setView('recipes')} className="text-gray-400 flex items-center text-xs font-bold mb-4"><ArrowLeft size={14} className="mr-1"/> Tornar</button>
+                                <h2 className="text-2xl font-bold text-gray-900">{selectedRecipe.titol}</h2>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 no-scrollbar pb-24">
+                                <h4 className="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-4">Ingredients</h4>
+                                <ul className="space-y-3 mb-8">
+                                    {selectedRecipe.ingredients_necessaris.map((ing, i) => (
+                                        <li key={i} className="text-sm text-gray-600 flex gap-3 items-center">
+                                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>{ing}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <h4 className="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-4">Pas a pas</h4>
+                                <ol className="space-y-6">
+                                    {selectedRecipe.passos.map((s, i) => (
+                                        <li key={i} className="flex gap-4 text-sm text-gray-600">
+                                            <span className="font-black text-green-100 text-2xl -mt-1">{i+1}</span>
+                                            <p className="leading-relaxed">{s}</p>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                            
+                            {/* Botó Xat persistent */}
+                            <div className="absolute bottom-6 right-6 z-20">
+                                <button onClick={() => setShowChat(!showChat)} className="w-14 h-14 bg-green-600 text-white rounded-full shadow-xl flex items-center justify-center btn-press">
+                                    <MessageCircle size={28} />
+                                </button>
+                            </div>
+
+                            {/* Finestra de Xat */}
+                            {showChat && (
+                                <div className="absolute inset-0 bg-white z-30 animate-in flex flex-col">
+                                    <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                                        <h3 className="font-bold text-gray-800">Assistent EcoXef</h3>
+                                        <button onClick={() => setShowChat(false)} className="text-gray-400 text-sm font-bold">Tancar</button>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                                        {chatMessages.map((msg, i) => (
+                                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-green-600 text-white rounded-tr-none' : 'bg-gray-100 text-gray-700 rounded-tl-none'}`}>
+                                                    {msg.text}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="p-4 border-t flex gap-2">
+                                        <input 
+                                            value={chatInput} 
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            placeholder="Pregunta el que vulguis..." 
+                                            className="flex-1 bg-gray-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500" 
+                                        />
+                                        <button onClick={sendMessage} className="p-2 bg-green-600 text-white rounded-xl">
+                                            <Send size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<EcoXefApp />);
+    </script>
+</body>
+</html>
